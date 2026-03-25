@@ -1,4 +1,4 @@
-# 📌 Personal Integrated App
+# 📌 SyntrixOS
 
 Uma aplicação pessoal integrada para centralizar recursos financeiros, acadêmicos, produtividade e saúde em um único ambiente seguro.
 
