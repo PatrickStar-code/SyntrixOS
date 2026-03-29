@@ -10,7 +10,6 @@ Aplicação pessoal integrada para centralizar recursos financeiros, acadêmicos
 | -------------- | ---------- |
 | Front-end      | Next.js    |
 | Backend Core   | Supabase   |
-| Backend Seguro | NestJS     |
 | Autenticação   | Clerk      |
 
 ---
