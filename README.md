@@ -6,11 +6,11 @@ Aplicação pessoal integrada para centralizar recursos financeiros, acadêmicos
 
 # 🚀 Stack Tecnológica
 
-| Camada         | Tecnologia |
-| -------------- | ---------- |
-| Front-end      | Next.js    |
-| Backend Core   | Supabase   |
-| Autenticação   | Clerk      |
+| Camada       | Tecnologia |
+| ------------ | ---------- |
+| Front-end    | Next.js    |
+| Backend Core | Supabase   |
+| Autenticação | Clerk      |
 
 ---
 
@@ -32,14 +32,14 @@ Supabase (Banco + RLS)
 
 A aplicação foi projetada com foco em segurança desde a base:
 
-* Autenticação obrigatória (Clerk)
-* Autenticação Multifator (MFA)
-* Tokens nunca expostos no frontend
-* Criptografia em trânsito (HTTPS/TLS)
-* Criptografia em repouso (Supabase)
-* Controle de acesso por usuário (RLS)
-* Backend intermediário (NestJS) para proteção de APIs externas
-* Logs de auditoria
+- Autenticação obrigatória (Clerk)
+- Autenticação Multifator (MFA)
+- Tokens nunca expostos no frontend
+- Criptografia em trânsito (HTTPS/TLS)
+- Criptografia em repouso (Supabase)
+- Controle de acesso por usuário (RLS)
+- Backend intermediário (NestJS) para proteção de APIs externas
+- Logs de auditoria
 
 ---
 
@@ -49,14 +49,14 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 **Funcionalidades**
 
-* Integração com Open Finance
-* Dashboard com gráficos e relatórios
-* Contas e investimentos
+- Integração com Open Finance
+- Dashboard com gráficos e relatórios
+- Contas e investimentos
 
 **Arquitetura**
 
-* NestJS faz integração com APIs externas (Belvo / Pluggy)
-* Tokens armazenados de forma criptografada no Supabase
+- NestJS faz integração com APIs externas (Belvo / Pluggy)
+- Tokens armazenados de forma criptografada no Supabase
 
 ---
 
@@ -64,9 +64,9 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 **Funcionalidades**
 
-* Fichas personalizadas
-* Histórico de treinos
-* Acompanhamento de progresso
+- Fichas personalizadas
+- Histórico de treinos
+- Acompanhamento de progresso
 
 ---
 
@@ -74,14 +74,14 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 **Funcionalidades**
 
-* Integração com Canvas
-* Matérias, atividades e prazos
-* Notificações
+- Integração com Canvas
+- Matérias, atividades e prazos
+- Notificações
 
 **Arquitetura**
 
-* OAuth2 gerenciado via NestJS
-* Sincronização periódica via jobs
+- OAuth2 gerenciado via NestJS
+- Sincronização periódica via jobs
 
 ---
 
@@ -89,9 +89,9 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 **Funcionalidades**
 
-* Kanban (To-do, Doing, Done)
-* Gestão de tarefas
-* Prazos e status
+- Kanban (To-do, Doing, Done)
+- Gestão de tarefas
+- Prazos e status
 
 ---
 
@@ -99,9 +99,9 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 **Funcionalidades**
 
-* Bloco de notas
-* Tags e categorias
-* Busca rápida
+- Bloco de notas
+- Tags e categorias
+- Busca rápida
 
 ---
 
@@ -109,24 +109,24 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 ## Front-end (Next.js)
 
-* Interface do usuário
-* Consumo de APIs
-* Integração com Clerk
+- Interface do usuário
+- Consumo de APIs
+- Integração com Clerk
 
 ## Backend Seguro (NestJS)
 
-* Integração com APIs externas
-* Proteção de tokens sensíveis
-* Validação de dados
-* Regras de negócio
-* Logs e auditoria
+- Integração com APIs externas
+- Proteção de tokens sensíveis
+- Validação de dados
+- Regras de negócio
+- Logs e auditoria
 
 ## Backend Core (Supabase)
 
-* Banco PostgreSQL
-* Row Level Security (RLS)
-* Storage
-* Queries e persistência
+- Banco PostgreSQL
+- Row Level Security (RLS)
+- Storage
+- Queries e persistência
 
 ---
 
@@ -143,17 +143,17 @@ A aplicação foi projetada com foco em segurança desde a base:
 
 # 🛡️ Controle de Acesso
 
-* Isolamento total por usuário
-* Implementado com RLS no Supabase
-* Validação de sessão no NestJS
+- Isolamento total por usuário
+- Implementado com RLS no Supabase
+- Validação de sessão no NestJS
 
 ---
 
 # 📊 Logs e Auditoria
 
-* Registro de login
-* Alterações críticas
-* Acesso a integrações externas
+- Registro de login
+- Alterações críticas
+- Acesso a integrações externas
 
 ---
 
@@ -234,9 +234,9 @@ USING (auth.uid() = user_id);
 
 # 📊 Índices
 
-* user_id
-* created_at
-* due_date
+- user_id
+- created_at
+- due_date
 
 ---
 
@@ -246,14 +246,14 @@ A aplicação inclui uma estratégia inicial de testes para garantir confiabilid
 
 ## 🔹 Tipos de Teste
 
-* Testes unitários (NestJS)
-* Testes de integração (APIs e banco)
-* Testes de autenticação (Clerk)
+- Testes unitários (NestJS)
+- Testes de integração (APIs e banco)
+- Testes de autenticação (Clerk)
 
 ## 🔹 Ferramentas
 
-* Jest (testes unitários e integração)
-* Supertest (testes de API - NestJS)
+- Jest (testes unitários e integração)
+- Supertest (testes de API - NestJS)
 
 ## 🔹 Estrutura de Testes
 
@@ -271,7 +271,7 @@ A aplicação inclui uma estratégia inicial de testes para garantir confiabilid
 ### Teste Unitário (Service)
 
 ```ts
-it('should return user data', async () => {
+it("should return user data", async () => {
   const result = await service.getUser(userId);
   expect(result).toBeDefined();
 });
@@ -281,8 +281,8 @@ it('should return user data', async () => {
 
 ```ts
 request(app.getHttpServer())
-  .get('/finance/accounts')
-  .set('Authorization', `Bearer ${token}`)
+  .get("/finance/accounts")
+  .set("Authorization", `Bearer ${token}`)
   .expect(200);
 ```
 
@@ -290,18 +290,18 @@ request(app.getHttpServer())
 
 # 🚧 Roadmap
 
-* App mobile (React Native)
-* Integração com calendário
-* IA para insights
-* Dashboard unificado
-* Microserviços futuros (NestJS)
+- App mobile (React Native)
+- Integração com calendário
+- IA para insights
+- Dashboard unificado
+- Microserviços futuros (NestJS)
 
 ---
 
 # 👨‍💻 Autor
 
-Projeto pessoal focado em produtividade, segurança e arquitetura moderna.
-=======
+# Projeto pessoal focado em produtividade, segurança e arquitetura moderna.
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -338,4 +338,5 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
->>>>>>> master
+
+> > > > > > > master
