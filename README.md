@@ -21,7 +21,7 @@ A aplicação utiliza uma arquitetura híbrida moderna, separando responsabilida
 ```
 Next.js (Frontend)
    ↓
-NestJS (Backend seguro / integrações)
+NodeJs (Backend seguro / integrações)
    ↓
 Supabase (Banco + RLS)
 ```
@@ -201,7 +201,6 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 CLERK_SECRET_KEY=
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
 
-# NestJS
 SUPABASE_SERVICE_ROLE_KEY=
 OPEN_FINANCE_API_KEY=
 CANVAS_CLIENT_ID=
