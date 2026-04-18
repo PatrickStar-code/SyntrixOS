@@ -3,17 +3,17 @@ import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { WebhookEvent } from "@clerk/backend";
 
-const supabase = createClient();
-
-const secret = process.env.CLERK_WEBHOOK_SECRET;
-
-if (!secret) {
-  throw new Error("CLERK_WEBHOOK_SECRET não definido");
-}
-
-const wh = new Webhook(secret);
-
 export async function POST(req: Request) {
+  const supabase = createClient();
+
+  const secret = process.env.CLERK_WEBHOOK_SECRET;
+
+  if (!secret) {
+    throw new Error("CLERK_WEBHOOK_SECRET não definido");
+  }
+
+  const wh = new Webhook(secret);
+
   const payload = await req.text();
   const headers = req.headers;
 
