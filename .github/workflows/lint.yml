@@ -24,6 +24,6 @@ jobs:
 
       - run: pnpm install
 
-      - run: pnpm lint
+      - run: pnpm lint:eslint
 
-      - run: pnpm format:check
+      - run: pnpm lint:prettier:check

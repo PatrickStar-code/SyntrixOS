@@ -1,3 +1,4 @@
 # npm test
 npx lint-staged
-npm run format:check
+npm run lint:eslint
+npm run lint:prettier:check
