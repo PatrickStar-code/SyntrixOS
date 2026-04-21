@@ -3,17 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev ",
+    "tunnel": "cloudflared tunnel --url http://localhost:3000",
+    "dev:tunnel": "concurrently \"npm run dev\" \"npm run tunnel\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint .",
     "test": "vitest",
     "test:watch": "vitest --watch ",
     "test:ci": "vitest run --passWithNoTests",
     "commit": "git cz",
     "prepare": "husky install",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "lint:eslint": "eslint .",
+    "lint:prettier:check": "prettier --check .",
+    "lint:prettier:write": "prettier --write ."
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
@@ -24,6 +26,7 @@
   "dependencies": {
     "@clerk/backend": "^3.2.13",
     "@clerk/nextjs": "^7.2.3",
+    "@clerk/types": "^4.101.20",
     "@phosphor-icons/react": "^2.1.10",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.3",
@@ -57,6 +60,7 @@
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.1",
     "commitizen": "^4.3.1",
+    "concurrently": "^9.2.1",
     "cz-conventional-changelog": "^3.3.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "16.2.4",

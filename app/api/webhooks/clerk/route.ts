@@ -1,10 +1,13 @@
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 import { Webhook } from "svix";
 import { WebhookEvent } from "@clerk/backend";
 
 export async function POST(req: Request) {
-  const supabase = createClient();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
 
   const secret = process.env.CLERK_WEBHOOK_SECRET;
 
@@ -29,23 +32,24 @@ export async function POST(req: Request) {
     return new Response("Invalid signature", { status: 400 });
   }
 
-  console.log("EVENT TYPE:", event.type);
-
   if (event.type === "user.created") {
-    const user = event.data;
+    const email = event.data.primary_email_address_id
+      ? event.data.email_addresses?.find(
+          (e) => e.id === event.data.primary_email_address_id,
+        )?.email_address
+      : event.data.email_addresses?.[0]?.email_address;
 
-    const name = `${user.first_name || ""} ${user.last_name || ""}`.trim();
-    const now = new Date().toISOString();
-
-    await supabase.from("accounts").upsert(
+    const { error } = await supabase.from("users").upsert(
       {
-        user_id: user.id,
-        name,
-        created_at: now,
-        updated_at: now,
+        clerk_id: event.data.id,
+        email: email,
       },
-      { onConflict: "user_id" },
+      { onConflict: "clerk_id" },
     );
+
+    if (error) {
+      console.error("SUPABASE ERROR:", error);
+    }
   }
 
   return NextResponse.json({ success: true });
