@@ -94,19 +94,19 @@ const SyntrixOSLanding: React.FC = () => {
           <div className="flex gap-2 mb-2 w-full">
             {!isSignedIn ? (
               <>
-                <SignInButton mode="modal">
+                <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                   <button className="flex-1 py-3 px-8 rounded-lg font-bold transition-all duration-300 bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.6)] hover:scale-[1.02] active:scale-95">
                     Entrar
                   </button>
                 </SignInButton>
-                <SignUpButton mode="modal">
+                <SignUpButton mode="modal" forceRedirectUrl="/dashboard">
                   <button className="flex-1 py-3 px-8 rounded-lg font-bold transition-all duration-300 bg-transparent border-2 border-white text-white shadow-[0_0_10px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.4)] hover:bg-white hover:text-black hover:scale-[1.02] active:scale-95">
                     Criar conta
                   </button>
                 </SignUpButton>
               </>
             ) : (
-              <Link href="/profile" className="w-full">
+              <Link href="/dashboard" className="w-full">
                 <button className="w-full py-3 px-8 rounded-lg font-bold transition-all duration-300 bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_40px_rgba(255,255,255,0.6)] hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2">
                   Acessar Painel do Sistema
                 </button>
