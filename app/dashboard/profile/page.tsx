@@ -2,7 +2,6 @@
 
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
-import { NeuralBackground } from "@/components/NeuralBackground";
 import { Mail, Calendar, ShieldCheck, LogOut, Settings } from "lucide-react";
 
 export default function ProfilePage() {
@@ -10,25 +9,19 @@ export default function ProfilePage() {
 
   if (!isLoaded || !isSignedIn) {
     return (
-      <div className="relative min-h-screen w-full bg-[#0a0a0a] flex items-center justify-center">
-        <NeuralBackground />
-        <div className="relative z-10">
-          <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
-        </div>
+      <div className="w-full flex items-center justify-center p-10">
+        <div className="w-12 h-12 border-4 border-white/20 border-t-white rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="relative min-h-screen w-full bg-[#0a0a0a] overflow-hidden flex flex-col items-center justify-center p-6">
-      <NeuralBackground />
-      <div className="absolute inset-0 bg-linear-to-b from-transparent via-[#0a0a0a]/50 to-[#0a0a0a]" />
-
+    <div className="w-full max-w-4xl mx-auto pb-10">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative z-10 w-full max-w-2xl"
+        className="w-full"
       >
         <div className="bg-[#111111]/90 backdrop-blur-2xl rounded-3xl p-8 border border-[#FFFFFF]/20 shadow-[0_0_50px_rgba(255,255,255,0.1)]">
           {/* Header/Avatar */}

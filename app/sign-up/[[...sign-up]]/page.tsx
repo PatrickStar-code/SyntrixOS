@@ -9,6 +9,7 @@ export default function SignUpPage() {
 
       <div className="relative z-10 w-full flex items-center justify-center p-6">
         <SignUp
+          forceRedirectUrl="/dashboard"
           appearance={{
             elements: {
               rootBox: "mx-auto",
