@@ -4,7 +4,6 @@ import React from "react";
 import { motion } from "framer-motion";
 import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
 import { NeuralBackground } from "@/components/NeuralBackground";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 const SyntrixOSLanding: React.FC = () => {
