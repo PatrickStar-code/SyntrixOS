@@ -3,8 +3,7 @@ import { test, expect, vi, beforeAll } from "vitest";
 
 beforeAll(() => {
   process.env.CLERK_WEBHOOK_SECRET = "test_secret";
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://test.supabase.co";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "test_key";
+  process.env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
 });
 
 vi.mock("svix", () => {
@@ -15,7 +14,7 @@ vi.mock("svix", () => {
           type: "user.created",
           data: {
             id: "user_123",
-            email_addresses: [{ email_address: "[EMAIL_ADDRESS]" }],
+            email_addresses: [{ email_address: "test@example.com" }],
           },
         };
       }
@@ -23,13 +22,13 @@ vi.mock("svix", () => {
   };
 });
 
-vi.mock("@supabase/supabase-js", () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      upsert: vi.fn().mockResolvedValue({ error: null }),
-    })),
-  })),
-}));
+vi.mock("@/lib/db", () => {
+  const mockSql = vi.fn().mockResolvedValue([]);
+  mockSql.unsafe = vi.fn().mockResolvedValue([]);
+  return {
+    sql: mockSql,
+  };
+});
 
 test("create_user using clerk", async () => {
   const request = new Request(
@@ -47,7 +46,7 @@ test("create_user using clerk", async () => {
           id: "user_123",
           email_addresses: [
             {
-              email_address: "[EMAIL_ADDRESS]",
+              email_address: "test@example.com",
             },
           ],
           first_name: "Patrick",

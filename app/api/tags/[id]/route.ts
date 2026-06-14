@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { requireDbUserId } from "@/lib/auth";
+import { sql } from "@/lib/db";
 import { UpdateTagRequest, Tag, TagColor } from "@/lib/ideas";
 
 const VALID_COLORS: TagColor[] = [
@@ -18,85 +18,112 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient();
-  const { userId } = await auth();
-  const { id } = await params;
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: UpdateTagRequest;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    const userId = await requireDbUserId();
+    const { id } = await params;
 
-  const updateData: Record<string, unknown> = {};
+    let body: UpdateTagRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
 
-  if (body.name !== undefined) {
-    if (!body.name.trim()) {
+    const updateData: Record<string, unknown> = {};
+
+    if (body.name !== undefined) {
+      if (!body.name.trim()) {
+        return NextResponse.json(
+          { error: "Tag name cannot be empty" },
+          { status: 400 },
+        );
+      }
+      updateData.name = body.name.trim();
+    }
+
+    if (body.color !== undefined) {
+      if (!VALID_COLORS.includes(body.color)) {
+        return NextResponse.json({ error: "Invalid color" }, { status: 400 });
+      }
+      updateData.color = body.color;
+    }
+
+    if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
-        { error: "Tag name cannot be empty" },
+        { error: "No fields to update" },
         { status: 400 },
       );
     }
-    updateData.name = body.name.trim();
-  }
 
-  if (body.color !== undefined) {
-    if (!VALID_COLORS.includes(body.color)) {
-      return NextResponse.json({ error: "Invalid color" }, { status: 400 });
+    // Build dynamic update query
+    const setClauses: string[] = [];
+    const values: unknown[] = [];
+    let paramIndex = 1;
+
+    for (const [key, value] of Object.entries(updateData)) {
+      const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
+      setClauses.push(`${snakeKey} = $${paramIndex}`);
+      values.push(value);
+      paramIndex++;
     }
-    updateData.color = body.color;
-  }
 
-  if (Object.keys(updateData).length === 0) {
-    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
-  }
+    // Add user_id check to prevent unauthorized updates
+    values.push(userId);
+    values.push(id);
 
-  const { data, error } = await supabase
-    .from("tags")
-    .update(updateData)
-    .eq("id", id)
-    .eq("user_id", userId)
-    .select()
-    .single();
+    const query = `
+      UPDATE tags 
+      SET ${setClauses.join(", ")}, updated_at = NOW()
+      WHERE user_id = $${paramIndex} AND id = $${paramIndex + 1}
+      RETURNING *
+    `;
 
-  if (error) {
-    if (error.code === "PGRST116") {
+    const result = await sql.unsafe(query, values);
+
+    if (result.length === 0) {
       return NextResponse.json({ error: "Tag not found" }, { status: 404 });
     }
-    console.error("SUPABASE ERROR (update tag):", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
 
-  return NextResponse.json(data as Tag);
+    return NextResponse.json(result[0] as unknown as Tag);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("DB ERROR (update tag):", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
+  }
 }
 
 export async function DELETE(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const supabase = await createClient();
-  const { userId } = await auth();
-  const { id } = await params;
+  try {
+    const userId = await requireDbUserId();
+    const { id } = await params;
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const result = await sql`
+      DELETE FROM tags 
+      WHERE user_id = ${userId} AND id = ${id}
+      RETURNING id
+    `;
+
+    if (result.length === 0) {
+      return NextResponse.json({ error: "Tag not found" }, { status: 404 });
+    }
+
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("DB ERROR (delete tag):", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
-
-  const { error } = await supabase
-    .from("tags")
-    .delete()
-    .eq("id", id)
-    .eq("user_id", userId);
-
-  if (error) {
-    console.error("SUPABASE ERROR (delete tag):", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return new NextResponse(null, { status: 204 });
 }

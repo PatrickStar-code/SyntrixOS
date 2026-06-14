@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, Variants } from "framer-motion";
-import { Plus, MoreHorizontal, Tag as TagIcon, Search, X } from "lucide-react";
-import { useState, useEffect, useCallback } from "react";
+import { Plus, Tag as TagIcon, Search, X } from "lucide-react";
+import { useState, useEffect } from "react";
 import {
   IdeaWithTags,
   Tag,
@@ -347,7 +347,7 @@ export default function IdeiasPage() {
             ))}
           </div>
         ) : (
-          <KanbanBoard ideas={ideas} tags={tags} onMoveIdea={handleMoveIdea} />
+          <KanbanBoard ideas={ideas} onMoveIdea={handleMoveIdea} />
         )}
       </motion.div>
 

@@ -9,7 +9,7 @@ import {
   DragOverlay,
   closestCenter,
 } from "@dnd-kit/core";
-import { Idea, Tag, COLUMNS, ColumnId } from "@/lib/ideas";
+import { Idea, COLUMNS, ColumnId } from "@/lib/ideas";
 import { MoreHorizontal } from "lucide-react";
 import { useState } from "react";
 
@@ -124,11 +124,10 @@ function KanbanColumn({ id, title, ideas }: KanbanColumnProps) {
 
 interface KanbanBoardProps {
   ideas: Idea[];
-  tags: Tag[];
   onMoveIdea: (ideaId: string, newStatus: ColumnId) => void;
 }
 
-export function KanbanBoard({ ideas, tags, onMoveIdea }: KanbanBoardProps) {
+export function KanbanBoard({ ideas, onMoveIdea }: KanbanBoardProps) {
   const [activeIdea, setActiveIdea] = useState<Idea | null>(null);
 
   const handleDragStart = (event: DragStartEvent) => {

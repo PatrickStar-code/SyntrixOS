@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { requireDbUserId } from "@/lib/auth";
+import { sql } from "@/lib/db";
 import { CreateTagRequest, Tag, TagColor } from "@/lib/ideas";
 
 const VALID_COLORS: TagColor[] = [
@@ -15,68 +15,66 @@ const VALID_COLORS: TagColor[] = [
 ];
 
 export async function GET() {
-  const supabase = await createClient();
-  const { userId } = await auth();
+  try {
+    const userId = await requireDbUserId();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tags = await sql<Tag[]>`
+      SELECT * FROM tags 
+      WHERE user_id = ${userId}
+      ORDER BY created_at DESC
+    `;
+
+    return NextResponse.json(tags);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("DB ERROR (fetch tags):", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
-
-  const { data, error } = await supabase
-    .from("tags")
-    .select("*")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.error("SUPABASE ERROR (fetch tags):", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data as Tag[]);
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: CreateTagRequest;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    const userId = await requireDbUserId();
 
-  if (!body.name || !body.name.trim()) {
+    let body: CreateTagRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    if (!body.name || !body.name.trim()) {
+      return NextResponse.json(
+        { error: "Tag name is required" },
+        { status: 400 },
+      );
+    }
+
+    const color =
+      body.color && VALID_COLORS.includes(body.color as TagColor)
+        ? body.color
+        : VALID_COLORS[0];
+
+    const [tag] = await sql<Tag[]>`
+      INSERT INTO tags (user_id, name, color)
+      VALUES (${userId}, ${body.name.trim()}, ${color})
+      RETURNING *
+    `;
+
+    return NextResponse.json(tag, { status: 201 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("DB ERROR (create tag):", error);
     return NextResponse.json(
-      { error: "Tag name is required" },
-      { status: 400 },
+      { error: "Internal server error" },
+      { status: 500 },
     );
   }
-
-  const color =
-    body.color && VALID_COLORS.includes(body.color as TagColor)
-      ? body.color
-      : VALID_COLORS[0];
-
-  const { data, error } = await supabase
-    .from("tags")
-    .insert({
-      user_id: userId,
-      name: body.name.trim(),
-      color,
-    })
-    .select()
-    .single();
-
-  if (error) {
-    console.error("SUPABASE ERROR (create tag):", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  return NextResponse.json(data as Tag, { status: 201 });
 }

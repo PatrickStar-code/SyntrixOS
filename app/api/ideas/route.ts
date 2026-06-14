@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/server";
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { requireDbUserId } from "@/lib/auth";
+import { sql } from "@/lib/db";
 import {
   CreateIdeaRequest,
   IdeasQueryParams,
@@ -15,232 +15,298 @@ const VALID_SORT_FIELDS = ["created_at", "updated_at"] as const;
 const VALID_SORT_ORDERS = ["asc", "desc"] as const;
 
 export async function GET(req: Request) {
-  const supabase = await createClient();
-  const { userId } = await auth();
+  try {
+    const userId = await requireDbUserId();
 
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+    const { searchParams } = new URL(req.url);
 
-  const { searchParams } = new URL(req.url);
-
-  // Parse query parameters
-  const params: IdeasQueryParams = {};
-  if (searchParams.has("status")) {
-    const status = searchParams.get("status");
-    if (VALID_STATUSES.includes(status as ColumnId)) {
-      params.status = status as ColumnId;
+    // Parse query parameters
+    const params: IdeasQueryParams = {};
+    if (searchParams.has("status")) {
+      const status = searchParams.get("status");
+      if (VALID_STATUSES.includes(status as ColumnId)) {
+        params.status = status as ColumnId;
+      }
     }
-  }
-  if (searchParams.has("tagId")) {
-    params.tagId = searchParams.get("tagId")!;
-  }
-  if (searchParams.has("search")) {
-    params.search = searchParams.get("search")!;
-  }
-  if (searchParams.has("limit")) {
-    params.limit = parseInt(searchParams.get("limit")!, 10);
-  }
-  if (searchParams.has("offset")) {
-    params.offset = parseInt(searchParams.get("offset")!, 10);
-  }
-  if (
-    searchParams.has("sortBy") &&
-    VALID_SORT_FIELDS.includes(
-      searchParams.get("sortBy")! as (typeof VALID_SORT_FIELDS)[number],
-    )
-  ) {
-    params.sortBy = searchParams.get(
-      "sortBy",
-    )! as (typeof VALID_SORT_FIELDS)[number];
-  }
-  if (
-    searchParams.has("sortOrder") &&
-    VALID_SORT_ORDERS.includes(
-      searchParams.get("sortOrder")! as (typeof VALID_SORT_ORDERS)[number],
-    )
-  ) {
-    params.sortOrder = searchParams.get(
-      "sortOrder",
-    )! as (typeof VALID_SORT_ORDERS)[number];
-  }
-
-  // Build query
-  let query = supabase
-    .from("ideas")
-    .select(
-      `
-      *,
-      idea_tags!inner(
-        tag:tags(*)
+    if (searchParams.has("tagId")) {
+      params.tagId = searchParams.get("tagId")!;
+    }
+    if (searchParams.has("search")) {
+      params.search = searchParams.get("search")!;
+    }
+    if (searchParams.has("limit")) {
+      params.limit = parseInt(searchParams.get("limit")!, 10);
+    }
+    if (searchParams.has("offset")) {
+      params.offset = parseInt(searchParams.get("offset")!, 10);
+    }
+    if (
+      searchParams.has("sortBy") &&
+      VALID_SORT_FIELDS.includes(
+        searchParams.get("sortBy")! as (typeof VALID_SORT_FIELDS)[number],
       )
-    `,
-      { count: "exact" },
-    )
-    .eq("user_id", userId);
+    ) {
+      params.sortBy = searchParams.get(
+        "sortBy",
+      )! as (typeof VALID_SORT_FIELDS)[number];
+    }
+    if (
+      searchParams.has("sortOrder") &&
+      VALID_SORT_ORDERS.includes(
+        searchParams.get("sortOrder")! as (typeof VALID_SORT_ORDERS)[number],
+      )
+    ) {
+      params.sortOrder = searchParams.get(
+        "sortOrder",
+      )! as (typeof VALID_SORT_ORDERS)[number];
+    }
 
-  // Apply filters
-  if (params.status) {
-    query = query.eq("status", params.status);
-  }
+    // Build query for tags
+    const sortBy = params.sortBy || "created_at";
+    const sortOrder = params.sortOrder || "desc";
+    const limit = params.limit || 50;
+    const offset = params.offset || 0;
 
-  if (params.tagId) {
-    query = query.eq("idea_tags.tag_id", params.tagId);
-  }
+    // First, get the count for pagination
+    let countSql = `
+      SELECT COUNT(*) as total
+      FROM ideas
+      WHERE user_id = $1
+    `;
+    let countParams: unknown[] = [userId];
 
-  if (params.search) {
-    query = query.or(
-      `content.ilike.%${params.search}%,description.ilike.%${params.search}%`,
+    if (params.status) {
+      countSql = `
+        SELECT COUNT(*) as total
+        FROM ideas
+        WHERE user_id = $1 AND status = $2
+      `;
+      countParams.push(params.status);
+    }
+
+    if (params.tagId) {
+      countSql = `
+        SELECT COUNT(*) as total
+        FROM ideas i
+        JOIN idea_tags it ON it.idea_id = i.id
+        WHERE i.user_id = $1 AND it.tag_id = $2
+      `;
+      countParams = [userId, params.tagId];
+    }
+
+    if (params.search) {
+      const searchTerm = `%${params.search}%`;
+      countSql = `
+        SELECT COUNT(*) as total
+        FROM ideas
+        WHERE user_id = $1
+        AND (content ILIKE $2 OR description ILIKE $2)
+      `;
+      countParams = [userId, searchTerm];
+    }
+
+    const [{ total }] = await sql.unsafe(countSql, countParams);
+
+    // Now get the actual data with tags
+    let query = `
+      SELECT i.*, 
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', t.id,
+              'user_id', t.user_id,
+              'name', t.name,
+              'color', t.color,
+              'created_at', t.created_at,
+              'updated_at', t.updated_at
+            )
+          ) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM ideas i
+      LEFT JOIN idea_tags it ON it.idea_id = i.id
+      LEFT JOIN tags t ON t.id = it.tag_id
+      WHERE i.user_id = $1
+    `;
+    const queryParams: unknown[] = [userId];
+    let paramIndex = 2;
+
+    if (params.status) {
+      query += ` AND i.status = $${paramIndex}`;
+      queryParams.push(params.status);
+      paramIndex++;
+    }
+
+    if (params.tagId) {
+      query += ` AND EXISTS (
+        SELECT 1 FROM idea_tags it2 
+        WHERE it2.idea_id = i.id AND it2.tag_id = $${paramIndex}
+      )`;
+      queryParams.push(params.tagId);
+      paramIndex++;
+    }
+
+    if (params.search) {
+      const searchTerm = `%${params.search}%`;
+      query += ` AND (i.content ILIKE $${paramIndex} OR i.description ILIKE $${paramIndex})`;
+      queryParams.push(searchTerm);
+      paramIndex++;
+    }
+
+    query += ` GROUP BY i.id ORDER BY i.${sortBy} ${sortOrder.toUpperCase()} LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    queryParams.push(limit, offset);
+
+    const ideas = await sql.unsafe(query, queryParams);
+
+    interface IdeaRow {
+      id: string;
+      user_id: string;
+      content: string;
+      description: string | null;
+      status: ColumnId;
+      created_at: string;
+      updated_at: string;
+      tags: Tag[];
+    }
+
+    function toIdeaWithTags(idea: IdeaRow): IdeaWithTags {
+      return {
+        id: idea.id,
+        user_id: idea.user_id,
+        content: idea.content,
+        description: idea.description,
+        status: idea.status,
+        created_at: idea.created_at,
+        updated_at: idea.updated_at,
+        tags: idea.tags || [],
+      };
+    }
+
+    const transformedIdeas: IdeaWithTags[] = (
+      ideas as unknown as IdeaRow[]
+    ).map(toIdeaWithTags);
+
+    return NextResponse.json({
+      ideas: transformedIdeas,
+      total: Number(total),
+      limit,
+      offset,
+    } as IdeasResponse);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("DB ERROR (fetch ideas):", error);
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
     );
   }
-
-  // Apply sorting
-  const sortBy = params.sortBy || "created_at";
-  const sortOrder = params.sortOrder || "desc";
-  query = query.order(sortBy, { ascending: sortOrder === "asc" });
-
-  // Apply pagination
-  const limit = params.limit || 50;
-  const offset = params.offset || 0;
-  query = query.range(offset, offset + limit - 1);
-
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error("SUPABASE ERROR (fetch ideas):", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-
-  // Transform data to include tags array
-  function toIdeaWithTags(idea: {
-    id: string;
-    user_id: string;
-    content: string;
-    description: string | null;
-    status: ColumnId;
-    created_at: string;
-    updated_at: string;
-    idea_tags?: Array<{ tag: Tag }>;
-  }): IdeaWithTags {
-    return {
-      id: idea.id,
-      user_id: idea.user_id,
-      content: idea.content,
-      description: idea.description,
-      status: idea.status,
-      created_at: idea.created_at,
-      updated_at: idea.updated_at,
-      tags: idea.idea_tags?.map((it) => it.tag).filter(Boolean) || [],
-    };
-  }
-
-  const ideas: IdeaWithTags[] = (data || []).map(toIdeaWithTags);
-
-  return NextResponse.json({
-    ideas,
-    total: count || 0,
-    limit,
-    offset,
-  } as IdeasResponse);
 }
 
 export async function POST(req: Request) {
-  const supabase = await createClient();
-  const { userId } = await auth();
-
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  let body: CreateIdeaRequest;
   try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
+    const userId = await requireDbUserId();
 
-  if (!body.content || !body.content.trim()) {
+    let body: CreateIdeaRequest;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+    }
+
+    if (!body.content || !body.content.trim()) {
+      return NextResponse.json(
+        { error: "Idea content is required" },
+        { status: 400 },
+      );
+    }
+
+    const status =
+      body.status && VALID_STATUSES.includes(body.status)
+        ? body.status
+        : "Novo";
+
+    // Create the idea
+    const [idea] = await sql`
+      INSERT INTO ideas (user_id, content, description, status)
+      VALUES (${userId}, ${body.content.trim()}, ${body.description?.trim() || null}, ${status})
+      RETURNING *
+    `;
+
+    // Create tag associations if provided
+    if (body.tagIds && body.tagIds.length > 0) {
+      await sql`
+        INSERT INTO idea_tags (idea_id, tag_id)
+        SELECT ${idea.id}, unnest(${body.tagIds.join(",")}::uuid[])
+        ON CONFLICT DO NOTHING
+      `;
+    }
+
+    // Fetch the created idea with tags
+    const [ideaWithTags] = await sql`
+      SELECT i.*, 
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', t.id,
+              'user_id', t.user_id,
+              'name', t.name,
+              'color', t.color,
+              'created_at', t.created_at,
+              'updated_at', t.updated_at
+            )
+          ) FILTER (WHERE t.id IS NOT NULL),
+          '[]'
+        ) as tags
+      FROM ideas i
+      LEFT JOIN idea_tags it ON it.idea_id = i.id
+      LEFT JOIN tags t ON t.id = it.tag_id
+      WHERE i.id = ${idea.id} AND i.user_id = ${userId}
+      GROUP BY i.id
+    `;
+
+    interface IdeaRow {
+      id: string;
+      user_id: string;
+      content: string;
+      description: string | null;
+      status: ColumnId;
+      created_at: string;
+      updated_at: string;
+      tags: Tag[];
+    }
+
+    function transformIdea(idea: IdeaRow): IdeaWithTags {
+      return {
+        id: idea.id,
+        user_id: idea.user_id,
+        content: idea.content,
+        description: idea.description,
+        status: idea.status,
+        created_at: idea.created_at,
+        updated_at: idea.updated_at,
+        tags: idea.tags || [],
+      };
+    }
+
+    const transformedIdea: IdeaWithTags = transformIdea(
+      ideaWithTags as unknown as IdeaRow,
+    );
+
+    return NextResponse.json(transformedIdea, { status: 201 });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Unauthorized") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    console.error("DB ERROR (create idea):", error);
     return NextResponse.json(
-      { error: "Idea content is required" },
-      { status: 400 },
+      {
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
     );
   }
-
-  const status =
-    body.status && VALID_STATUSES.includes(body.status) ? body.status : "Novo";
-
-  // Create the idea
-  const { data: idea, error: ideaError } = await supabase
-    .from("ideas")
-    .insert({
-      user_id: userId,
-      content: body.content.trim(),
-      description: body.description?.trim() || null,
-      status,
-    })
-    .select()
-    .single();
-
-  if (ideaError) {
-    console.error("SUPABASE ERROR (create idea):", ideaError);
-    return NextResponse.json({ error: ideaError.message }, { status: 500 });
-  }
-
-  // Create tag associations if provided
-  if (body.tagIds && body.tagIds.length > 0) {
-    const tagInserts = body.tagIds.map((tagId) => ({
-      idea_id: idea.id,
-      tag_id: tagId,
-    }));
-
-    const { error: tagError } = await supabase
-      .from("idea_tags")
-      .insert(tagInserts);
-
-    if (tagError) {
-      console.error("SUPABASE ERROR (create idea_tags):", tagError);
-      // Don't fail the request, just log the error
-    }
-  }
-
-  // Fetch the created idea with tags
-  const { data: ideaWithTags } = await supabase
-    .from("ideas")
-    .select(
-      `
-      *,
-      idea_tags!inner(
-        tag:tags(*)
-      )
-    `,
-    )
-    .eq("id", idea.id)
-    .eq("user_id", userId)
-    .single();
-
-  function transformIdea(idea: {
-    id: string;
-    user_id: string;
-    content: string;
-    description: string | null;
-    status: ColumnId;
-    created_at: string;
-    updated_at: string;
-    idea_tags?: Array<{ tag: Tag }>;
-  }): IdeaWithTags {
-    return {
-      id: idea.id,
-      user_id: idea.user_id,
-      content: idea.content,
-      description: idea.description,
-      status: idea.status,
-      created_at: idea.created_at,
-      updated_at: idea.updated_at,
-      tags: idea.idea_tags?.map((it) => it.tag).filter(Boolean) || [],
-    };
-  }
-
-  const transformedIdea: IdeaWithTags = transformIdea(ideaWithTags!);
-
-  return NextResponse.json(transformedIdea, { status: 201 });
 }
