@@ -3,6 +3,7 @@
 import { useUser, SignOutButton } from "@clerk/nextjs";
 import { motion } from "framer-motion";
 import { Mail, Calendar, ShieldCheck, LogOut, Settings } from "lucide-react";
+import Image from "next/image";
 
 export default function ProfilePage() {
   const { isLoaded, isSignedIn, user } = useUser();
@@ -28,9 +29,11 @@ export default function ProfilePage() {
           <div className="flex flex-col items-center mb-10">
             <div className="relative mb-6">
               <div className="w-32 h-32 rounded-full border-2 border-white/30 p-1 shadow-[0_0_30px_rgba(255,255,255,0.2)]">
-                <img
+                <Image
                   src={user.imageUrl}
                   alt={user.fullName || "User"}
+                  width={96}
+                  height={96}
                   className="w-full h-full rounded-full object-cover"
                 />
               </div>

@@ -12,18 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v3
-        with:
-          version: 8
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: "pnpm"
-          cache-dependency-path: pnpm-lock.yaml
+          cache: "npm"
 
-      - run: pnpm install
+      - run: npm ci
 
-      - run: pnpm lint:eslint
+      - run: npm run lint:eslint
 
-      - run: pnpm lint:prettier:check
+      - run: npm run lint:prettier:check
