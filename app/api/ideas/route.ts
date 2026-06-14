@@ -73,7 +73,7 @@ export async function GET(req: Request) {
       FROM ideas
       WHERE user_id = $1
     `;
-    let countParams: unknown[] = [userId];
+    let countParams: (string | number | boolean | null)[] = [userId];
 
     if (params.status) {
       countSql = `
@@ -128,7 +128,7 @@ export async function GET(req: Request) {
       LEFT JOIN tags t ON t.id = it.tag_id
       WHERE i.user_id = $1
     `;
-    const queryParams: unknown[] = [userId];
+    const queryParams: (string | number | boolean | null)[] = [userId];
     let paramIndex = 2;
 
     if (params.status) {

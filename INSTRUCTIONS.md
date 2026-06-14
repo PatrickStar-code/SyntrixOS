@@ -56,7 +56,7 @@ Pare após os testes e aguarde minha validação.
 5. Commit
 
 Após minha aprovação:
-
+Verifique se o husk autoriza o commit se não ajuste para que supla todas necessidades do husk
 Verifique se todos os testes estão passando.
 Faça o commit seguindo o padrão:
 feat:nome-da-feature

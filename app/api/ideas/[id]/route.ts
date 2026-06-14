@@ -126,7 +126,7 @@ export async function PATCH(
 
     // Build dynamic update query
     const setClauses: string[] = [];
-    const values: unknown[] = [];
+    const values: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     for (const [key, value] of Object.entries(updateData)) {

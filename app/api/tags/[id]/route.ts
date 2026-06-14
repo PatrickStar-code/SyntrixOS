@@ -57,13 +57,13 @@ export async function PATCH(
 
     // Build dynamic update query
     const setClauses: string[] = [];
-    const values: unknown[] = [];
+    const values: (string | number | boolean | null)[] = [];
     let paramIndex = 1;
 
     for (const [key, value] of Object.entries(updateData)) {
       const snakeKey = key.replace(/([A-Z])/g, "_$1").toLowerCase();
       setClauses.push(`${snakeKey} = $${paramIndex}`);
-      values.push(value);
+      values.push(value as string | number | boolean | null);
       paramIndex++;
     }
 
